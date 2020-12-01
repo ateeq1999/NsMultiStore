@@ -25,6 +25,7 @@ class MultiStoreController extends DashboardController
         StoresService $stores
     )
     {
+        parent::__construct();
         $this->storesService    =   $stores;
     }
 
@@ -33,9 +34,11 @@ class MultiStoreController extends DashboardController
      * @return  view
      * @since  1.0
     **/
-    public function index()
+    public function home()
     {
-        return View::make( 'NsMultiStore::index' );
+        return $this->view( 'NsMultiStore::dashboard.home', [
+            'title'     =>      __( 'MultiStore Dashboard' )
+        ]);
     }
 
     public function stores()

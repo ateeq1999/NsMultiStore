@@ -67,10 +67,13 @@
                 </div>
             </div>
             <div class="overflow-y-auto flex-auto">
-                <div v-if="stores.length === 0" class="h-56 w-full flex items-center justify-center">
+                <div v-if="hasLoaded === 0" class="h-full w-full flex items-center justify-center">
                     <ns-spinner></ns-spinner>
                 </div>
-                <div v-if="stores.length > 0" class="grid grid-cols-3 w-full">
+                <div v-if="hasLoaded && stores.length === 0" class="h-full w-full flex items-center justify-center">
+                    <h3>{{ __( 'No store has been created.' ) }}</h3>
+                </div>
+                <div v-if="hasLoaded && stores.length > 0" class="grid grid-cols-3 w-full">
                     <a :href="'{{ url( '/dashboard/store' ) }}/' + store.id" v-for="store of stores" class="border bg-blue-800 cursor-pointer border-gray-200 h-40 relative">
                         <div class="h-full w-full object-contain overflow-hidden flex items-center justify-center">
                             <img v-if="store.thumb" :src="store.thumb" :alt="store.name">
@@ -100,7 +103,8 @@ background: linear-gradient(0deg, rgba(0,0,0,0.8379726890756303) 0%, rgba(0,0,0,
             template: '#store-selection-template',
             data() {
                 return {
-                    stores: []
+                    stores: [],
+                    hasLoaded: false
                 }
             },
             mounted() {
@@ -116,9 +120,13 @@ background: linear-gradient(0deg, rgba(0,0,0,0.8379726890756303) 0%, rgba(0,0,0,
                     this.$popup.close();
                 },
                 loadStores() {
+                    this.hasLoaded      =   false;
                     nsHttpClient.get( '/api/nexopos/v4/multistores/stores' )
                         .subscribe( stores => {
                             this.stores     =   stores;
+                            this.hasLoaded  =   true;
+                        }, ( error ) => {
+                            this.hasLoaded  =   true;
                         })
                 }
             }

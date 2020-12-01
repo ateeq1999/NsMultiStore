@@ -20,7 +20,10 @@ class ServiceProvider extends ModulesServiceProvider
         Hook::addFilter( 'ns-route', [ NsMultiStoreEvent::class, 'builRoute' ], 10, 3 );
         Hook::addFilter( 'ns-dashboard-header', [ NsMultiStoreEvent::class, 'overWriteHeader' ]);
         Hook::addFilter( 'ns-url', [ NsMultiStoreEvent::class, 'setUrl' ]);
-        Hook::addFilter( 'ns-route-name', [ NsMultiStoreEvent::class, 'customizeRouteNames' ]); 
+        Hook::addFilter( 'ns-route-name', [ NsMultiStoreEvent::class, 'customizeRouteNames' ]);
+        // Hook::addFilter( 'ns-route-dashboard-home', [ NsMultiStoreEvent::class, 'overWriteDashboardRoute' ]);
+        Hook::addFilter( 'ns-common-routes', [ NsMultiStoreEvent::class, 'disableDefaultComponents' ], 10, 3 ); 
+        Hook::addFilter( 'ns-login-redirect', [ NsMultiStoreEvent::class, 'defaultRouteAfterAuthentication' ], 10, 2 ); 
     }
 
     public function boot( ModulesService $moduleService )

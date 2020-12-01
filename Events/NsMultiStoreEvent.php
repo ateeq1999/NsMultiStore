@@ -4,7 +4,9 @@ namespace Modules\NsMultiStore\Events;
 use App\Crud\StoreCrud;
 use Illuminate\Support\Facades\View;
 use Illuminate\Support\Str;
+use App\Exceptions\NotAllowedException;
 use Modules\NsMultiStore\Services\StoresService;
+use Modules\NsMultiStore\Http\Middleware\DetectStoreMiddleware;
 
 /**
  * Register Events
@@ -116,7 +118,7 @@ class NsMultiStoreEvent
                 'store_id'  =>  ns()->store->getStoreID(),
                 ...$params
             ]);
-        }
+        } 
 
         return $final;
     }
@@ -139,8 +141,43 @@ class NsMultiStoreEvent
     {
         if ( ns()->store->isMultiStore() ) {
             return 'multistore-' . $name;
-        }
+        } 
 
         return $name;
+    }
+
+    /**
+     * We might want to check wether the user has some permission
+     * to access the multistore dashboard. Preferably, we need to create
+     * various dasboard for users roles, 
+     */
+    public static function defaultRouteAfterAuthentication( $route, $hadIntension )
+    {
+        if ( ! $hadIntension ) {
+            return route( 'ns.multistore-dashboard' );
+        }
+
+        return $route;
+    }
+
+    /**
+     * will force run the middleware on common routes
+     * and check if an unauthorized access is detected
+     */
+    public static function disableDefaultComponents( $response, $request, $next )
+    {
+        $detectStoreMiddleware  =   new DetectStoreMiddleware;
+        $newRequest             =   $detectStoreMiddleware->handle( $request, $next );
+
+        if ( ! ns()->store->isMultiStore() ) {
+            throw new NotAllowedException( __( 'Unable to access to this page when the multistore is enabled.' ) );
+        }
+
+        return $response;
+    }
+
+    public static function overWriteDashboardRoute( $route )
+    {
+        return 'ns.multistore-dashboard';
     }
 }
