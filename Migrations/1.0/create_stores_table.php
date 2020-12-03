@@ -23,7 +23,7 @@ class CreateStoresTable extends Migration
             Schema::create( 'nexopos_stores', function( Blueprint $table ) {
                 $table->id();
                 $table->string( 'name' );
-                $table->string( 'slug' );
+                $table->string( 'slug' )->unique();
                 $table->integer( 'author' );
                 $table->text( 'description' )->nullable();
                 $table->string( 'thumb' )->nullable();

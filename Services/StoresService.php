@@ -7,23 +7,17 @@ use Modules\NsMultiStore\Models\Store;
 
 class StoresService 
 {
-    private $storeID    =   false;
+    private $isMultiStore   =   false;
     private $currentStore;
 
     public function isMultiStore()
     {
-        return ! empty( $this->storeID );
+        return $this->currentStore instanceof Store || $this->isMultiStore;
     }
 
-    public function setStoreID( $id )
+    public function setStore( Store $store )
     {
-        $this->storeID          =   $id;
-        $this->currentStore     =   Store::find( $id );
-    }
-
-    public function clearStoreID()
-    {
-        return $this->storeID   = false;
+        $this->currentStore     =   $store;
     }
 
     public function getCurrentStore()
@@ -31,14 +25,10 @@ class StoresService
         return $this->currentStore;
     }
 
-    public function getStoreID()
-    {
-        return $this->storeID;
-    }
-
     public function createStoreTables( Store $store )
     {
         $files  =   Storage::disk( 'ns' )->files( '/database/migrations/v1_0' );
+
         foreach( $files as $file ) {
             $className  =   collect( explode( '_', $file ) )->skipUntil( function( $value, $index ) {
                 return $index === 5;
@@ -104,5 +94,12 @@ class StoresService
     public function getOpened()
     {
         return Store::where( 'status', Store::STATUS_OPENED )->get();
+    }
+
+    public function defineStoreRoutes( $callback )
+    {
+        $this->isMultiStore     =   true;
+        $callback();
+        $this->isMultiStore     =   false;
     }
 }

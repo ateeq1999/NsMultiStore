@@ -1,11 +1,14 @@
 <?php
 
+use App\Http\Middleware\Authenticate;
 use App\Http\Middleware\CheckMigrationStatus;
+use Illuminate\Routing\Middleware\SubstituteBindings;
 use Illuminate\Support\Facades\Route;
 use Modules\NsMultiStore\Http\Controllers\MultiStoreController;
 use Modules\NsMultiStore\Http\Middleware\DetectStoreMiddleware;
+use Modules\NsMultiStore\Models\Store;
 
-Route::middleware([ CheckMigrationStatus::class, 'auth' ])->group( function() {
+Route::middleware([ CheckMigrationStatus::class, SubstituteBindings::class, 'auth' ])->group( function() {
     Route::get( '/dashboard/multistore', [ MultiStoreController::class, 'home' ])->name( 'ns.multistore-dashboard' );
     Route::get( '/dashboard/multistore/settings', [ MultiStoreController::class, 'settings' ])->name( 'ns.multistore-settings' );
     Route::get( '/dashboard/multistore/stores', [ MultiStoreController::class, 'stores' ])->name( 'ns.multistore-stores' );
@@ -14,20 +17,13 @@ Route::middleware([ CheckMigrationStatus::class, 'auth' ])->group( function() {
 });
 
 Route::prefix( '/dashboard/store/{store_id}' )
-    ->middleware([ DetectStoreMiddleware::class, 'auth' ])
+    ->middleware([ 
+        DetectStoreMiddleware::class, 
+        Authenticate::class, 
+        SubstituteBindings::class 
+    ])
     ->group( function() {
-        /**
-         * Normally, the store id is detected from the URL. However while defining
-         * the routes, we need to fakely define the store ID to enforce stores route
-         * has specifice and unique name.
-         */
-        ns()->store->setStoreID( true );
-
-        include( base_path() . '/routes/nexopos.php' );
-
-        /**
-         * As it's not more needed, we'll
-         * clear the fakely defined URL
-         */
-        ns()->store->clearStoreID();
+        ns()->store->defineStoreRoutes( function() {
+            include( base_path() . '/routes/nexopos.php' );
+        });
 });

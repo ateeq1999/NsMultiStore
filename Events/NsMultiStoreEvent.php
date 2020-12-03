@@ -1,7 +1,8 @@
 <?php
 namespace Modules\NsMultiStore\Events;
 
-use App\Crud\StoreCrud;
+use App\Classes\Output;
+use Modules\NsMultiStore\Crud\StoreCrud;
 use Illuminate\Support\Facades\View;
 use Illuminate\Support\Str;
 use App\Exceptions\NotAllowedException;
@@ -13,6 +14,16 @@ use Modules\NsMultiStore\Http\Middleware\DetectStoreMiddleware;
 **/
 class NsMultiStoreEvent
 {
+    static $ignored_tables  =   [
+        'nexopos_users',
+        'nexopos_roles',
+        'nexopos_permissions',
+        'nexopos_role_permission',
+        'nexopos_stores',
+    ];
+
+    static $routePrefix     =   'ns.multistore--';
+
     /**
      * Registers the crud component for 
      * creating and managing stores
@@ -36,15 +47,30 @@ class NsMultiStoreEvent
     public static function setUrl( $url )
     {
         if ( ns()->store->isMultiStore() ) {
-            $url    =   collect( explode( '/dashboard', $url ) )
-                ->skipUntil( fn( $value, $index ) => $index === 0 )
-                ->prepend( ns()->store->getStoreID() . '/' )
-                ->prepend( 'store/' )
-                ->prepend( 'dashboard/' )
-                ->filter( fn( $slug ) => ! empty( $slug ) )
-                ->join('');
 
-            return Str::replaceArray( '//', [ '/' ], $url );
+            $isDashboardUrl     =   Str::of( url( $url ) )->contains( url( '/dashboard/' ) );
+            $isApiUrl           =   Str::of( url( $url ) )->contains( url( '/api/' ) );
+
+            /**
+             * if while dividing the url using the segment "/dashboard"
+             * the result equals 2, then that means the URL point to the "dashboard"
+             * and not the "api".
+             */
+            if ( $isDashboardUrl ) {
+                $url    =   collect( explode( 'dashboard', $url ) )
+                    ->splice( 1 )
+                    ->prepend( 'dashboard/store/' . ns()->store->getCurrentStore()->id )
+                    ->prepend( url('/') )
+                    ->map( fn( $slice ) => ( string ) Str::of( $slice )->trim('/') )
+                    ->join( '/' );
+            } else if ( $isApiUrl ) {
+                $url    =   collect( explode( 'nexopos/v4', $url ) )
+                    ->splice( 1 )
+                    ->prepend( 'api/nexopos/v4/store/' . ns()->store->getCurrentStore()->id )
+                    ->prepend( url('/') )
+                    ->map( fn( $slice ) => ( string ) Str::of( $slice )->trim('/') )
+                    ->join( '/' );
+            }
         }
 
         return $url;
@@ -63,6 +89,7 @@ class NsMultiStoreEvent
          */
         if ( ns()->store->isMultiStore() ) {
             unset( $menus[ 'modules' ] );
+            unset( $menus[ 'users' ] );
             return $menus;
         }
 
@@ -99,7 +126,7 @@ class NsMultiStoreEvent
         ]);
 
         return collect( $menus )->filter( function( $menu, $index ) {
-            return in_array( $index, [ 'modules', 'ns.multistore-settings', 'ns.multistore-dashboard', 'ns.multistore-stores' ] );
+            return in_array( $index, [ 'modules', 'ns.multistore-settings', 'ns.multistore-dashboard', 'ns.multistore-stores', 'users' ] );
         });
     }
 
@@ -114,11 +141,30 @@ class NsMultiStoreEvent
     public static function builRoute( $final, $route, $params )
     {
         if ( ns()->store->isMultiStore() ) {
-            return route( $route, [
-                'store_id'  =>  ns()->store->getStoreID(),
-                ...$params
-            ]);
-        } 
+            if ( in_array( $route, [
+                'ns.dashboard.modules-list',
+                'ns.dashboard.modules-upload',
+                'ns.dashboard.modules-upload',
+                'ns.dashboard.modules-migrate',
+                'ns.dashboard.users.profile',
+                'ns.login',
+                'ns.register',
+                'ns.register.post',
+                'ns.logout',
+                'ns.database-update',
+            ]) ) {
+                return route( $route );
+            }
+
+            return route( self::$routePrefix . $route, array_merge([
+                'store_id'  =>  ns()->store->getCurrentStore()->id,
+            ], $params ) );
+        } else {
+            switch( $route ) {
+                case 'ns.dashboard.home':
+                    return route( 'ns.multistore-dashboard' );
+            }
+        }
 
         return $final;
     }
@@ -140,7 +186,7 @@ class NsMultiStoreEvent
     public static function customizeRouteNames( $name )
     {
         if ( ns()->store->isMultiStore() ) {
-            return 'multistore-' . $name;
+            return self::$routePrefix . $name;
         } 
 
         return $name;
@@ -167,7 +213,7 @@ class NsMultiStoreEvent
     public static function disableDefaultComponents( $response, $request, $next )
     {
         $detectStoreMiddleware  =   new DetectStoreMiddleware;
-        $newRequest             =   $detectStoreMiddleware->handle( $request, $next );
+        $response               =   $detectStoreMiddleware->handle( $request, $next );
 
         if ( ! ns()->store->isMultiStore() ) {
             throw new NotAllowedException( __( 'Unable to access to this page when the multistore is enabled.' ) );
@@ -176,8 +222,51 @@ class NsMultiStoreEvent
         return $response;
     }
 
-    public static function overWriteDashboardRoute( $route )
+    /**
+     * will prefix model table while the 
+     * model is being used on  multistore
+     * @param string $table
+     * @return string
+     */
+    public static function prefixModelTable( $table )
     {
-        return 'ns.multistore-dashboard';
+        $table  =   trim( $table );
+
+        if ( ns()->store->isMultiStore() && ! in_array( trim( $table ), self::$ignored_tables ) ) {
+            return 'store_' . ns()->store->getCurrentStore()->id . '_' . $table;
+        }
+
+        return $table;
+    }
+
+    public static function injectHttpClientListener( Output $output )
+    {
+        $output->addView( 'NsMultiStore::dashboard.footer-http-overrider' );
+    }
+
+    /**
+     * We would like to prevent the store table to be ereased
+     * while performing a reset.
+     * @param string $table name
+     * @return mixed $table or boolean
+     */
+    public static function preventTableTruncatingOnMultiStore( $table ) {
+        if (  in_array( $table, [
+            'nexopos_stores',
+            'nexopos_options',
+        ] ) ) {
+            return false;
+        }
+
+        return $table;
+    }
+
+    public static function changeMediaDirectory( $path )
+    {
+        if ( ns()->store->isMultiStore() ) {
+            return 'store_' . ns()->store->getCurrentStore()->id . DIRECTORY_SEPARATOR . $path;
+        }
+
+        return $path;
     }
 }

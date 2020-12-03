@@ -8,9 +8,11 @@
 
 namespace Modules\NsMultiStore\Http\Controllers;
 
-use App\Crud\StoreCrud;
+use Modules\NsMultiStore\Crud\StoreCrud;
 use Illuminate\Support\Facades\View;
 use App\Http\Controllers\DashboardController;
+use App\Services\DateService;
+use Illuminate\Support\Facades\DB;
 use Modules\NsMultiStore\Models\Store;
 use Modules\NsMultiStore\Services\StoresService;
 
@@ -21,12 +23,20 @@ class MultiStoreController extends DashboardController
      */
     protected $storesService;
 
+    /**
+     * @var DateService
+     */
+    protected $dateService;
+
     public function __construct(
-        StoresService $stores
+        StoresService $stores,
+        DateService $dateService
     )
     {
         parent::__construct();
+
         $this->storesService    =   $stores;
+        $this->dateService      =   $dateService;
     }
 
     /**
@@ -59,5 +69,27 @@ class MultiStoreController extends DashboardController
     public function getStores()
     {
         return $this->storesService->getOpened();
+    }
+
+    public function getStoreDetails()
+    {
+        return Store::status( Store::STATUS_OPENED )
+            ->get()
+            ->map( function( $store ) {
+                $today                      =   $this->dateService->copy()->now();
+                $yesterday                  =   $this->dateService->copy()->now()->subDay();
+
+                $store->yesterday_report    =   DB::table( 'store_' . $store->id . '_nexopos_dashboard_days' )
+                    ->where( 'range_starts', '>=', $yesterday->startOfDay()->toDateTimeString() )
+                    ->where( 'range_ends', '<=', $yesterday->startOfDay()->toDateTimeString() )
+                    ->get();
+
+                $store->today_report        =   DB::table( 'store_' . $store->id . '_nexopos_dashboard_days' )
+                    ->where( 'range_starts', '>=', $today->startOfDay()->toDateTimeString() )
+                    ->where( 'range_ends', '<=', $today->startOfDay()->toDateTimeString() )
+                    ->get();
+
+                return $store;
+            });
     }
 }

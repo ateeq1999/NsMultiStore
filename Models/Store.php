@@ -14,4 +14,9 @@ class Store extends Model
     const STATUS_DISMANTLING    =   'dismantling';
 
     protected $table    =   'nexopos_stores';
+
+    public function scopeStatus( $query, $status )
+    {
+        return $query->where( 'status', $status );
+    }
 }

@@ -1,5 +1,5 @@
 <?php
-namespace App\Crud;
+namespace Modules\NsMultiStore\Crud;
 
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Str;
@@ -446,7 +446,7 @@ class StoreCrud extends CrudService
             [
                 'label'         =>  __( 'Delete Selected Groups' ),
                 'identifier'    =>  'delete_selected',
-                'url'           =>  route( 'crud.bulk-actions', [
+                'url'           =>  route( 'ns.api.crud-bulk-actions', [
                     'namespace' =>  $this->namespace
                 ])
             ]
