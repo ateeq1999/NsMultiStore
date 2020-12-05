@@ -81,13 +81,13 @@ class MultiStoreController extends DashboardController
 
                 $store->yesterday_report    =   DB::table( 'store_' . $store->id . '_nexopos_dashboard_days' )
                     ->where( 'range_starts', '>=', $yesterday->startOfDay()->toDateTimeString() )
-                    ->where( 'range_ends', '<=', $yesterday->startOfDay()->toDateTimeString() )
-                    ->get();
+                    ->where( 'range_ends', '<=', $yesterday->endOfDay()->toDateTimeString() )
+                    ->first();
 
                 $store->today_report        =   DB::table( 'store_' . $store->id . '_nexopos_dashboard_days' )
                     ->where( 'range_starts', '>=', $today->startOfDay()->toDateTimeString() )
-                    ->where( 'range_ends', '<=', $today->startOfDay()->toDateTimeString() )
-                    ->get();
+                    ->where( 'range_ends', '<=', $today->endOfDay()->toDateTimeString() )
+                    ->first();
 
                 return $store;
             });

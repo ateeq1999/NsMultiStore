@@ -37,6 +37,9 @@ class DismantleStoreJob implements ShouldQueue
 
             $storeService->dismantleStore( $this->store );
 
+            $totalStore     =   ( int ) ns()->option->get( 'ns.multistores.stores', 0 );
+            ns()->option->set( 'ns.multistores.stores', --$totalStore );
+
             return $notificationService->create([
                 'title'         =>  __( 'Store Dismantling Status' ),
                 'description'   =>  sprintf( __( 'The Store "%s" has been successfully dismantled..' ), $this->store->name ),

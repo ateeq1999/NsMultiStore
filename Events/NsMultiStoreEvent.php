@@ -117,13 +117,13 @@ class NsMultiStoreEvent
             ]
         ]);
 
-        $menus  =   array_insert_before( $menus, 'modules', [
-            'ns.multistore-settings'    =>  [
-                'label'     =>  __( 'MultiStore Settings' ),
-                'icon'      =>  'la-cogs',
-                'href'      =>  route( 'ns.multistore-settings' ),
-            ]
-        ]);
+        // $menus  =   array_insert_before( $menus, 'modules', [
+        //     'ns.multistore-settings'    =>  [
+        //         'label'     =>  __( 'MultiStore Settings' ),
+        //         'icon'      =>  'la-cogs',
+        //         'href'      =>  route( 'ns.multistore-settings' ),
+        //     ]
+        // ]);
 
         return collect( $menus )->filter( function( $menu, $index ) {
             return in_array( $index, [ 'modules', 'ns.multistore-settings', 'ns.multistore-dashboard', 'ns.multistore-stores', 'users' ] );

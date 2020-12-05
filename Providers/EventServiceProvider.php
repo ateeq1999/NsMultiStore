@@ -126,7 +126,7 @@ class EventServiceProvider extends ProvidersEventServiceProvider
         });
 
         Event::listen( function( ProductAfterStockAdjustmentEvent $event ) {
-            StoreHandleStockAdjustmentJob::dispatch( $event )
+            StoreHandleStockAdjustmentJob::dispatch( ns()->store->current(), $event )
             ->delay( now() );
         });
 
