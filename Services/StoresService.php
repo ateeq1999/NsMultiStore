@@ -25,6 +25,11 @@ class StoresService
         return $this->currentStore;
     }
 
+    public function current()
+    {
+        return $this->currentStore;
+    }
+
     public function createStoreTables( Store $store )
     {
         $files  =   Storage::disk( 'ns' )->files( '/database/migrations/v1_0' );

@@ -5,7 +5,7 @@ use Illuminate\Broadcasting\InteractsWithSockets;
 use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\SerializesModels;
 
-class MultiStoreLoadedEvent
+class MultiStoreApiLoadedEvent
 {
     use Dispatchable, InteractsWithSockets, SerializesModels;
 }

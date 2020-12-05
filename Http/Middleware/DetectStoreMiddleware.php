@@ -10,7 +10,8 @@ use App\Services\ModulesService;
 use Closure;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
-use Modules\NsMultiStore\Events\MultiStoreLoadedEvent;
+use Modules\NsMultiStore\Events\MultiStoreWebLoadedEvent;
+use Modules\NsMultiStore\Events\MultiStoreApiLoadedEvent;
 use Modules\NsMultiStore\Models\Store;
 use Modules\NsMultiStore\Services\StoresService;
 
@@ -23,7 +24,7 @@ class DetectStoreMiddleware
      * @param  \Closure  $next
      * @return mixed
      */
-    public function handle(Request $request, Closure $next)
+    public function handle(Request $request, Closure $next, $type = 'web' )
     {
         $store      =   Store::find( $request->route( 'store_id' ) );
 
@@ -42,8 +43,13 @@ class DetectStoreMiddleware
          */
         $storeService   =   app()->make( StoresService::class );        
         $storeService->setStore( $store );
+        
+        if ( $type === 'web' ) {
+            event( new MultiStoreWebLoadedEvent( $store ) );
+        } else {
+            event( new MultiStoreApiLoadedEvent( $store ) );
+        }
 
-        event( new MultiStoreLoadedEvent( $store ) );
 
         return $next($request);
     }

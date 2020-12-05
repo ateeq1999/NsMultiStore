@@ -12,9 +12,11 @@ Route::prefix( 'nexopos/v4' )
     ->group( function() {
         Route::get( '/multistores/stores', [ MultiStoreController::class, 'getStores' ]);
         Route::get( '/multistores/stores-details', [ MultiStoreController::class, 'getStoreDetails' ]);
-
         Route::prefix( '/store/{store_id}' )
-            ->middleware([ DetectStoreMiddleware::class, SubstituteBindings::class ])
+            ->middleware([ 
+                DetectStoreMiddleware::class . ':api', 
+                SubstituteBindings::class 
+            ])
             ->group( function() {
                 ns()->store->defineStoreRoutes( function() {
                     include( base_path( 'routes/api/dashboard.php' ) );    
